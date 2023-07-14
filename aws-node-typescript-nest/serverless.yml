@@ -1,10 +1,13 @@
-service:
-  name: serverless-nest-example
+service: serverless-nest-example
+# serviceの記載方法が v3から変わる
+# service:
+#   name: serverless-nest-example
 
 frameworkVersion: "3"
 
 plugins:
-  - '@hewmen/serverless-plugin-typescript'  
+  - '@hewmen/serverless-plugin-typescript'
+  ##- 'serverless-plugin-typescript'
   - serverless-plugin-optimize
   - serverless-offline
   # - serverless-plugin-warmup
