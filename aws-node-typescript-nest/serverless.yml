@@ -6,8 +6,8 @@ service: serverless-nest-example
 frameworkVersion: "3"
 
 plugins:
-  - '@hewmen/serverless-plugin-typescript'
-  ##- 'serverless-plugin-typescript'
+  ##- '@hewmen/serverless-plugin-typescript'
+  - 'serverless-plugin-typescript'
   - serverless-plugin-optimize
   - serverless-offline
   # - serverless-plugin-warmup
@@ -21,7 +21,8 @@ plugins:
 provider:
   name: aws
   runtime: nodejs18.x
-
+  region: ap-northeast-1
+  
 package:
   individually: true
 
@@ -30,5 +31,5 @@ functions:
     handler: src/main.handler
     events:
       - http:
-          method: any
+          method: ANY
           path: /{proxy+}

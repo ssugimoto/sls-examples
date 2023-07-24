@@ -1,10 +1,8 @@
-import { Handler, Context } from 'aws-lambda';
+import { Callback, Handler, Context } from 'aws-lambda';
 import { Server } from 'http';
-import { createServer, proxy } from 'aws-serverless-express';
-import { eventContext } from 'aws-serverless-express/middleware';
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import serverlessExpress from '@vendia/serverless-express';
 
 // NOTE: If you get ERR_CONTENT_DECODING_FAILED in your browser, this is likely
 // due to a compressed response (e.g. gzip) which has not been handled correctly
@@ -22,23 +20,21 @@ process.on('uncaughtException', (reason) => {
   console.error(reason);
 });
 
-async function bootstrapServer(): Promise<Server> {
-  if (!cachedServer) {
-    try {
-      const expressApp = require('express')();
-      const nestApp = await NestFactory.create(AppModule, expressApp);
-      nestApp.use(eventContext());
-      await nestApp.init();
-      cachedServer = createServer(expressApp, undefined, binaryMimeTypes);
-    }
-    catch (error) {
-      return Promise.reject(error);
-    }
-  }
-  return Promise.resolve(cachedServer);
+let server: Handler;
+
+async function bootstrap(): Promise<Handler> {
+  const app = await NestFactory.create(AppModule);
+  await app.init();
+
+  const expressApp = app.getHttpAdapter().getInstance();
+  return serverlessExpress({ app: expressApp });
 }
 
-export const handler: Handler = async (event: any, context: Context) => {
-  cachedServer = await bootstrapServer();
-  return proxy(cachedServer, event, context, 'PROMISE').promise;
-}
+export const handler: Handler = async (
+  event: any,
+  context: Context,
+  callback: Callback,
+) => {
+  server = server ?? (await bootstrap());
+  return server(event, context, callback);
+};

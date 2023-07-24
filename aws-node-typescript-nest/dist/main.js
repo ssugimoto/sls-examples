@@ -1,19 +1,12 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handler = void 0;
-const aws_serverless_express_1 = require("aws-serverless-express");
-const middleware_1 = require("aws-serverless-express/middleware");
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
+const serverless_express_1 = __importDefault(require("@vendia/serverless-express"));
 const binaryMimeTypes = [];
 let cachedServer;
 process.on('unhandledRejection', (reason) => {
@@ -22,25 +15,16 @@ process.on('unhandledRejection', (reason) => {
 process.on('uncaughtException', (reason) => {
     console.error(reason);
 });
-function bootstrapServer() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!cachedServer) {
-            try {
-                const expressApp = require('express')();
-                const nestApp = yield core_1.NestFactory.create(app_module_1.AppModule, expressApp);
-                nestApp.use(middleware_1.eventContext());
-                yield nestApp.init();
-                cachedServer = aws_serverless_express_1.createServer(expressApp, undefined, binaryMimeTypes);
-            }
-            catch (error) {
-                return Promise.reject(error);
-            }
-        }
-        return Promise.resolve(cachedServer);
-    });
+let server;
+async function bootstrap() {
+    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    await app.init();
+    const expressApp = app.getHttpAdapter().getInstance();
+    return (0, serverless_express_1.default)({ app: expressApp });
 }
-exports.handler = (event, context) => __awaiter(void 0, void 0, void 0, function* () {
-    cachedServer = yield bootstrapServer();
-    return aws_serverless_express_1.proxy(cachedServer, event, context, 'PROMISE').promise;
-});
+const handler = async (event, context, callback) => {
+    server = server ?? (await bootstrap());
+    return server(event, context, callback);
+};
+exports.handler = handler;
 //# sourceMappingURL=main.js.map
